@@ -8,25 +8,35 @@ installation = KeepInstallationAlive.new;
 semaphore = Semaphore(1);
 
 {
-	var next_buf, pb, watcher, recbuffer;
+	var next_buf, pb, watcher, recbuffer, srv_watcher, server_record;
+
+	server_record = 		{
+		try {
+			installation.s.stopRecording;
+		};
+		try {
+			installation.s.sync;
+			installation.s.prepareForRecord(PathName("~/Desktop/Listen"++Date.getDate.rawSeconds++".aiff").absolutePath);
+			installation.s.sync;
+			installation.s.record;
+		};
+	};
+
 
 	installation.boot(action:{
 		buffers = Array(50);
 		recbuffer = Buffer.alloc(s, ((rec_dur / 4) * installation.s.sampleRate).nextPowerOfTwo, 1);
 
-		{
-			try {
-				installation.s.stopRecording;
-			};
-			installation.s.sync;
-			installation.s.prepareForRecord(PathName("~/Desktop/Listen"++Date.getDate.rawSeconds++".aiff").absolutePath);
-			installation.s.sync;
-			installation.s.record;
-		}.fork
+		server_record.fork
 	});
 
-	installation.setMonitorServer(true, 0);
+	srv_watcher = installation.setMonitorServer(true, 0);
 	installation.preventPeaking(true);
+
+	srv_watcher.addFirstFix({
+		server_record.fork
+	});
+
 	//s.waitForBoot({
 
 	//var next_buf, playgrp;
@@ -41,7 +51,7 @@ semaphore = Semaphore(1);
 		SynthDef(\rec, {|in=0, db=0, bufnum=1, recbufnum=0, gate=1, dur=1|
 			var input, env;
 
-			env = EnvGen.kr(Env([0,1,1,0],[0.01, dur, 0.1]), gate, doneAction:2) *
+			env = EnvGen.kr(Env([0,1,1,0],[0.01, dur-0.11, 0.1]), gate, doneAction:2) *
 			EnvGen.kr(Env.asr, gate);
 
 			input = SoundIn.ar(in, env * db.dbamp);
@@ -135,6 +145,7 @@ semaphore = Semaphore(1);
 				});
 			});
 		}),
+		\out, 1,
 		\isAlive, Pfunc({|evt| evt[\bufnum].postln; installation.checkIn(\pbind)})
 	).play;
 
