@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=listen
+Exec=/home/celesteh/Documents/Installations/DeepListeningInstallation/listen.sh
+Type=application

@@ -2,7 +2,8 @@
 
 var installation, fullscreen, rec_dot, text, init, colour, alpha, is_raspberry=false, lines, do_record, is_recording = false, semaphore, rec_dur = 20, buf, buffers, manage_text, instructions;
 
-installation = KeepInstallationAlive.new;
+installation = KeepInstallationAlive(thisProcess.argv[0], thisProcess.argv[1]);
+
 
 
 semaphore = Semaphore(1);
@@ -10,7 +11,8 @@ semaphore = Semaphore(1);
 {
 	var next_buf, pb, watcher, recbuffer, srv_watcher, server_record;
 
-	server_record = 		{
+	server_record = {
+		/*
 		try {
 			installation.s.stopRecording;
 		};
@@ -20,6 +22,7 @@ semaphore = Semaphore(1);
 			installation.s.sync;
 			installation.s.record;
 		};
+		*/
 	};
 
 
@@ -51,7 +54,7 @@ semaphore = Semaphore(1);
 		SynthDef(\rec, {|in=0, db=0, bufnum=1, recbufnum=0, gate=1, dur=1|
 			var input, env;
 
-			env = EnvGen.kr(Env([0,1,1,0],[0.01, dur-0.11, 0.1]), gate, doneAction:2) *
+			env = EnvGen.kr(Env([0,1,1,0],[0.01, BufDur.kr(bufnum)-0.11, 0.1]), gate, doneAction:2) *
 			EnvGen.kr(Env.asr, gate);
 
 			input = SoundIn.ar(in, env * db.dbamp);
@@ -63,7 +66,7 @@ semaphore = Semaphore(1);
 		SynthDef(\player, {|out=0, amp=0.5, bufnum=0, gate=1, dur=1|
 			var output, env;
 
-			env = EnvGen.kr(Env([0,1,1,0],[0.01, dur, 0.1]), gate, doneAction:2) *
+			env = EnvGen.kr(Env([0,1,1,0],[0.01, BufDur.kr(bufnum)-0.11, 0.1]), gate, doneAction:2) *
 			EnvGen.kr(Env.asr, gate);
 
 			output = PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum), loop:1);
@@ -131,21 +134,21 @@ semaphore = Semaphore(1);
 			grp
 		}),
 		\bufnum, Pfunc({ (buffers.size > 0).if({ buffers.choose.bufnum}, {Rest()}) }),
-		\dur, rec_dur,
-		\legato, 1.1,
+		\dur, rec_dur * 0.85,
+		\legato, 2,
 		\db, Pwhite(-9.0, -6.0),
 		\degree, Pfunc({|evt|
 			(evt[\bufnum].isKindOf(Rest) || is_recording).if({
 				\rest
 			}, {
-				buffers.size.linlin(0, 10, 0, 0.3).coin.if({
+				buffers.size.linlin(0, 17, 0, 0.3).coin.if({
 					1
 				}, {
 					\rest
 				});
 			});
 		}),
-		\out, 1,
+		//\out, 1,
 		\isAlive, Pfunc({|evt| evt[\bufnum].postln; installation.checkIn(\pbind)})
 	).play;
 
@@ -337,6 +340,8 @@ manage_text = {
 };
 
 manage_text.();
+
+i = installation;
 
 )
 
